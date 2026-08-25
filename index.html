@@ -199,29 +199,17 @@
   }
   .card-front.red { color: var(--suit-red); }
   .card-front.black { color: var(--suit-black); }
-  .card-rank-tl {
-    font-family: var(--font-display);
-    font-size: 26px;
-    line-height: 1;
-  }
-  .card-suit-tl { font-size: 16px; line-height: 1; margin-top: 2px; }
-  .card-suit-big {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
+  .card-front {
     justify-content: center;
-    font-size: 56px;
-    opacity: 0.9;
+    align-items: flex-start;
+    padding: 10px 16px;
   }
-  .card-rank-br {
-    align-self: flex-end;
-    transform: rotate(180deg);
+  .card-rank {
     font-family: var(--font-display);
-    font-size: 26px;
+    font-size: 34px;
     line-height: 1;
   }
-  .card-suit-br { align-self: flex-end; transform: rotate(180deg); font-size: 16px; margin-bottom: 2px; }
+  .card-suit { font-size: 26px; line-height: 1; margin-top: 6px; }
 
   .card.pending-shake .card-inner { animation: shake 0.35s; }
 
@@ -927,9 +915,8 @@
   function renderCardFace(faceEl, rankIdx, suit){
     faceEl.className = 'card-face card-front ' + suit.color;
     faceEl.innerHTML =
-      '<div><div class="card-rank-tl">' + RANKS[rankIdx] + '</div><div class="card-suit-tl">' + suit.sym + '</div></div>' +
-      '<div class="card-suit-big">' + suit.sym + '</div>' +
-      '<div><div class="card-rank-br">' + RANKS[rankIdx] + '</div><div class="card-suit-br">' + suit.sym + '</div></div>';
+      '<div class="card-rank">' + RANKS[rankIdx] + '</div>' +
+      '<div class="card-suit">' + suit.sym + '</div>';
   }
 
   function updateOddsPanel(){
