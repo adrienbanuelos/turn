@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HI-LO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-1: #0a0a0c;
+    --bg-2: #17171a;
+    --bg-3: #202024;
+    --line: rgba(255,255,255,0.05);
+    --gold: #d4af37;
+    --gold-bright: #f2d879;
+    --cream: #f4efe1;
+    --ink: #15151a;
+    --suit-red: #c1453f;
+    --suit-black: #17181c;
+    --win: #52c97a;
+    --lose: #d5564d;
+    --low-accent: #7cb8e8;
+    --panel-bg: rgba(255,255,255,0.035);
+    --panel-border: rgba(255,255,255,0.09);
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    background: transparent;
+    color: var(--cream);
+    font-family: var(--font-body);
+  }
+
+  .app {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(255,255,255,0.05), transparent 55%),
+      radial-gradient(ellipse at 50% 115%, var(--bg-3), var(--bg-1) 60%);
+    overflow-x: hidden;
+  }
+
+  .app::before{
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 38px, var(--line) 39px),
+      repeating-linear-gradient(90deg, transparent, transparent 38px, var(--line) 39px);
+    opacity: 0.5;
+    z-index: 0;
+  }
+
+  .header {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 900px;
+    margin: 0 auto 18px;
+    padding: 0 4px;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    letter-spacing: 0.06em;
+    font-size: 30px;
+    color: var(--gold-bright);
+    text-shadow: 0 0 18px rgba(242,216,121,0.35);
+  }
+  .logo span { color: var(--cream); }
+
+  .balance-box { text-align: right; }
+  .balance-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(244,239,225,0.55);
+  }
+  .balance-value {
+    font-family: var(--font-display);
+    font-size: 26px;
+    color: var(--cream);
+    letter-spacing: 0.03em;
+  }
+  .balance-value::before{ content: "◈ "; color: var(--gold); font-size: 18px; }
+
+  .table {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .side-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  @media (max-width: 780px) {
+    .table { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 14px;
+    backdrop-filter: blur(2px);
+  }
+
+  .panel-title {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .panel-title::before { content:"—"; color: rgba(212,175,55,0.5); }
+
+  .felt-main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+  }
+
+  .card-row {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    justify-content: center;
+    min-height: 190px;
+  }
+
+  .card {
+    width: 118px;
+    height: 168px;
+    border-radius: 10px;
+    position: relative;
+    perspective: 800px;
+  }
+  .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(.2,.8,.3,1);
+  }
+  .card-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
+  }
+  .card-back {
+    background:
+      repeating-linear-gradient(45deg, #1e1e22, #1e1e22 6px, #16161a 6px, #16161a 12px);
+    border: 2px solid var(--gold);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .card-back-emblem{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family: var(--font-display); font-size: 34px; color: rgba(212,175,55,0.55); letter-spacing: 0.05em;
+  }
+  .card-front {
+    background: var(--cream);
+    color: var(--ink);
+    transform: rotateY(180deg);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    border: 2px solid rgba(0,0,0,0.06);
+  }
+  .card-front.red { color: var(--suit-red); }
+  .card-front.black { color: var(--suit-black); }
+  .card-rank-tl {
+    font-family: var(--font-display);
+    font-size: 26px;
+    line-height: 1;
+  }
+  .card-suit-tl { font-size: 16px; line-height: 1; margin-top: 2px; }
+  .card-suit-big {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 56px;
+    opacity: 0.9;
+  }
+  .card-rank-br {
+    align-self: flex-end;
+    transform: rotate(180deg);
+    font-family: var(--font-display);
+    font-size: 26px;
+    line-height: 1;
+  }
+  .card-suit-br { align-self: flex-end; transform: rotate(180deg); font-size: 16px; margin-bottom: 2px; }
+
+  .card.pending-shake .card-inner { animation: shake 0.35s; }
+
+  .card.thinking .card-back { animation: thinkingPulse 0.7s ease-in-out infinite; }
+  @keyframes thinkingPulse {
+    0%, 100% { border-color: var(--gold); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    50% { border-color: var(--gold-bright); box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(242,216,121,0.35); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0) rotateY(180deg); }
+    25% { transform: translateX(-4px) rotateY(180deg); }
+    75% { transform: translateX(4px) rotateY(180deg); }
+  }
+
+  .arrow-between {
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: rgba(244,239,225,0.4);
+  }
+
+  .multiplier-display {
+    margin-top: 16px;
+    font-family: var(--font-display);
+    font-size: 40px;
+    letter-spacing: 0.03em;
+    color: var(--win);
+    text-shadow: 0 0 20px rgba(82,201,122,0.35);
+    transition: transform 0.2s;
+  }
+  .multiplier-display.pulse { animation: pulse 0.4s; }
+  .multiplier-display.lose { color: var(--lose); text-shadow: 0 0 20px rgba(213,86,77,0.4); }
+  .multiplier-display.crash { animation: crash 0.55s cubic-bezier(.36,.07,.19,.97); }
+  @keyframes pulse { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+  @keyframes crash {
+    0%   { transform: translateY(0) scale(1) rotate(0deg); }
+    15%  { transform: translateY(-4px) scale(1.05) rotate(-1deg); }
+    30%  { transform: translateY(6px) scale(0.94) rotate(1.5deg); }
+    45%  { transform: translateY(-3px) scale(0.98) rotate(-1deg); }
+    60%  { transform: translateY(4px) scale(0.96) rotate(0.5deg); }
+    75%  { transform: translateY(-2px) scale(0.99) rotate(-0.3deg); }
+    100% { transform: translateY(0) scale(1) rotate(0deg); }
+  }
+  .multiplier-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(244,239,225,0.5);
+    margin-top: 2px;
+    letter-spacing: 0.05em;
+  }
+
+  .controls {
+    margin-top: 22px;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .wager-row { display: flex; gap: 8px; width: 100%; }
+  .wager-input {
+    flex: 1;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    color: var(--cream);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .wager-input:focus { outline: none; border-color: var(--gold); }
+  .wager-input::-webkit-outer-spin-button,
+  .wager-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .wager-input { -moz-appearance: textfield; appearance: textfield; }
+  .wager-input.invalid { border-color: var(--lose); animation: inputShake 0.3s; }
+  @keyframes inputShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  .chip-btn {
+    background: rgba(212,175,55,0.1);
+    border: 1px solid var(--panel-border);
+    color: var(--gold-bright);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 10px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .chip-btn:hover { background: rgba(212,175,55,0.22); }
+  .chip-btn:active { transform: scale(0.96); }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 9px;
+    border: none;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.15s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-start {
+    background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+    color: #241a03;
+  }
+  .btn-start:hover:not(:disabled) { filter: brightness(1.08); }
+
+  .bet-tabs {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+  }
+  .bet-tab {
+    flex: 1;
+    padding: 9px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: var(--bg-3);
+    color: rgba(244,239,225,0.55);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .bet-tab:hover { color: rgba(244,239,225,0.85); }
+  .bet-tab.active {
+    background: rgba(212,175,55,0.14);
+    border-color: var(--gold);
+    color: var(--gold-bright);
+  }
+
+  .guess-row { display: flex; gap: 10px; width: 100%; }
+  .suit-row, .color-row { display: flex; gap: 10px; width: 100%; }
+
+  .btn-guess {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    border-radius: 10px;
+    border: 1px solid var(--panel-border);
+    background: var(--bg-3);
+    padding: 12px 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.15s;
+  }
+  .btn-guess:active:not(:disabled) { transform: scale(0.98); }
+  .btn-guess:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-guess:hover:not(:disabled) { border-color: rgba(255,255,255,0.2); }
+
+  .guess-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 0%;
+    z-index: 0;
+    transition: width 0.4s ease;
+  }
+  .btn-high .guess-fill { background: linear-gradient(90deg, rgba(82,201,122,0.30), rgba(82,201,122,0.06)); }
+  .btn-low .guess-fill { background: linear-gradient(90deg, rgba(124,184,232,0.30), rgba(124,184,232,0.06)); }
+
+  .guess-body {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .guess-label {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .btn-high .guess-label { color: var(--win); }
+  .btn-low .guess-label { color: var(--low-accent); }
+  .guess-stats {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(244,239,225,0.6);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .suit-row .btn-guess, .color-row .btn-guess { text-align: center; padding: 14px 10px; }
+  .suit-row .guess-body, .color-row .guess-body { align-items: center; }
+  .btn-suit .guess-label { font-family: var(--font-display); font-size: 22px; line-height: 1; }
+  .btn-suit[data-suit-color="red"] .guess-label { color: var(--lose); }
+  .btn-suit[data-suit-color="black"] .guess-label { color: var(--cream); }
+  .btn-suit { background: linear-gradient(155deg, rgba(212,175,55,0.10), var(--bg-3) 65%); border-color: rgba(212,175,55,0.22); }
+  .btn-suit[data-suit-color="red"] { background: linear-gradient(155deg, rgba(213,86,77,0.16), var(--bg-3) 65%); border-color: rgba(213,86,77,0.28); }
+  .btn-suit .guess-fill { display: none; }
+  .btn-color-red { background: linear-gradient(155deg, rgba(213,86,77,0.18), var(--bg-3) 65%); border-color: rgba(213,86,77,0.3); }
+  .btn-color-black { background: linear-gradient(155deg, rgba(244,239,225,0.10), var(--bg-3) 65%); border-color: rgba(244,239,225,0.18); }
+  .btn-color-red .guess-label { color: var(--lose); }
+  .btn-color-black .guess-label { color: var(--cream); }
+  .btn-color-red .guess-fill, .btn-color-black .guess-fill { display: none; }
+
+  .secondary-row { display: flex; gap: 10px; width: 100%; }
+  .secondary-row .btn { flex: 1; width: auto; }
+  .btn-skip {
+    background: rgba(244,239,225,0.08);
+    color: var(--cream);
+    border: 1px solid var(--panel-border);
+  }
+  .btn-skip:hover:not(:disabled) { background: rgba(244,239,225,0.15); }
+  .btn-cashout {
+    background: linear-gradient(180deg, var(--gold-bright), #c99a1f);
+    color: #241a03;
+  }
+  .btn-cashout:hover:not(:disabled) { filter: brightness(1.08); }
+
+  .run-strip {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 4px 2px 8px;
+    align-items: flex-start;
+  }
+  .legend-head, .legend-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 8px;
+    align-items: center;
+    font-family: var(--font-mono);
+    padding: 6px 4px;
+  }
+  .legend-head {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(244,239,225,0.4);
+    padding-top: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .legend-row {
+    font-size: 12px;
+    color: rgba(244,239,225,0.85);
+  }
+  .legend-row + .legend-row { border-top: 1px solid rgba(255,255,255,0.04); }
+  .legend-col { min-width: 0; }
+  .legend-col.choice { color: rgba(244,239,225,0.95); font-weight:700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .legend-col.pct { color: rgba(244,239,225,0.7); text-align:center; }
+  .legend-col.mult { color: var(--gold-bright); text-align:center; }
+  .legend-col.gain { color: var(--win); text-align:right; white-space: nowrap; }
+  .legend-head .legend-col { color: inherit; font-weight: 400; }
+  .legend-high .legend-col.choice { color: var(--win); }
+  .legend-low .legend-col.choice { color: var(--low-accent); }
+  .legend-suit .legend-col.choice { color: var(--gold-bright); }
+  .legend-color-red .legend-col.choice { color: var(--suit-red); }
+  .legend-color-black .legend-col.choice { color: var(--cream); }
+
+  .run-card {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 46px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .run-face {
+    flex-shrink: 0;
+    width: 46px;
+    height: 62px;
+    border-radius: 6px;
+    background: var(--cream);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .run-face.red { color: var(--suit-red); }
+  .run-face.black { color: var(--suit-black); }
+  .run-rank { font-family: var(--font-display); font-size: 16px; line-height: 1; }
+  .run-suit { font-size: 12px; line-height: 1; margin-top: 2px; }
+
+  .run-connector {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    margin-top: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(10,10,12,0.9);
+    border: 1px solid var(--panel-border);
+    font-size: 11px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .run-connector.up { color: var(--win); border-color: rgba(82,201,122,0.4); }
+  .run-connector.down { color: var(--low-accent); border-color: rgba(124,184,232,0.4); }
+  .run-connector.suit-red { color: var(--lose); border-color: rgba(213,86,77,0.4); }
+  .run-connector.suit-black { color: var(--cream); border-color: rgba(244,239,225,0.25); }
+  .run-connector.color-red { color: var(--lose); border-color: rgba(213,86,77,0.4); }
+  .run-connector.color-black { color: var(--cream); border-color: rgba(244,239,225,0.25); }
+  .run-connector.skip { color: rgba(244,239,225,0.55); border-color: rgba(244,239,225,0.2); font-size: 12px; }
+
+  .run-pill {
+    margin-top: 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 6px;
+    border-radius: 5px;
+    white-space: nowrap;
+    background: rgba(82,201,122,0.14);
+    border: 1px solid rgba(82,201,122,0.35);
+    color: var(--win);
+  }
+  .run-pill.start {
+    background: rgba(212,175,55,0.12);
+    border-color: rgba(212,175,55,0.3);
+    color: var(--gold-bright);
+  }
+  .run-pill.skip {
+    background: rgba(244,239,225,0.06);
+    border-color: rgba(244,239,225,0.18);
+    color: rgba(244,239,225,0.6);
+  }
+
+  .ladder-empty {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(244,239,225,0.35);
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.3); border-radius: 3px; }
+
+  .cashout-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 20px;
+  }
+  .cashout-overlay.visible { display: flex; }
+  .cashout-box {
+    background: var(--bg-2);
+    border: 2px solid var(--win);
+    border-radius: 14px;
+    padding: 28px 36px 24px;
+    text-align: center;
+    min-width: 220px;
+    box-shadow: 0 0 40px rgba(82,201,122,0.35);
+    animation: cashoutIn 0.25s ease;
+  }
+  @keyframes cashoutIn {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .cashout-mult {
+    font-family: var(--font-display);
+    font-size: 38px;
+    letter-spacing: 0.02em;
+    color: var(--win);
+    text-shadow: 0 0 18px rgba(82,201,122,0.4);
+  }
+  .cashout-divider {
+    height: 1px;
+    background: rgba(82,201,122,0.3);
+    margin: 12px auto;
+    width: 80%;
+  }
+  .cashout-amount {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gold-bright);
+  }
+  .cashout-coin {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: #241a03;
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="logo">HI<span>·</span>LO</div>
+    <div class="balance-box">
+      <div class="balance-label">Balance</div>
+      <div class="balance-value" id="balanceValue">100.00</div>
+    </div>
+  </div>
+
+  <div class="table">
+    <!-- MAIN FELT -->
+    <div class="panel felt-main">
+      <div class="card-row">
+        <div class="card current" id="cardCurrent">
+          <div class="card-inner">
+            <div class="card-face card-back"><div class="card-back-emblem">?</div></div>
+            <div class="card-face card-front" id="cardCurrentFace"></div>
+          </div>
+        </div>
+        <div class="arrow-between">→</div>
+        <div class="card next" id="cardNext">
+          <div class="card-inner">
+            <div class="card-face card-back"><div class="card-back-emblem">?</div></div>
+            <div class="card-face card-front" id="cardNextFace"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="multiplier-display" id="multiplierDisplay">1.00x</div>
+      <div class="multiplier-sub" id="multiplierSub">accumulated multiplier</div>
+
+      <div class="controls">
+        <div class="wager-row" id="wagerRow">
+          <input class="wager-input" id="wagerInput" type="number" min="1" step="1" value="1">
+          <button class="chip-btn" data-chip="half">½</button>
+          <button class="chip-btn" data-chip="double">2×</button>
+          <button class="chip-btn" data-chip="max">MAX</button>
+        </div>
+
+        <button class="btn btn-start" id="startBtn">Play</button>
+
+        <div class="bet-tabs" id="betTabs" style="display:none;">
+          <button class="bet-tab active" data-bet-mode="hilo">Higher / Lower</button>
+          <button class="bet-tab" data-bet-mode="suit">Suit</button>
+          <button class="bet-tab" data-bet-mode="color">Color</button>
+        </div>
+
+        <div class="guess-row" id="guessRow" style="display:none;">
+          <button class="btn-guess btn-high" id="highBtn">
+            <span class="guess-fill" id="highFill"></span>
+            <span class="guess-body">
+              <span class="guess-label" id="highBtnLabel">▲ Higher or same</span>
+              <span class="guess-stats"><span id="highBtnPct">—</span></span>
+            </span>
+          </button>
+          <button class="btn-guess btn-low" id="lowBtn">
+            <span class="guess-fill" id="lowFill"></span>
+            <span class="guess-body">
+              <span class="guess-label" id="lowBtnLabel">▼ Lower or same</span>
+              <span class="guess-stats"><span id="lowBtnPct">—</span></span>
+            </span>
+          </button>
+        </div>
+
+        
+        <div class="suit-row" id="suitRow" style="display:none;">
+          <button class="btn-guess btn-suit" data-suit-color="black" data-suit="♠">
+            <span class="guess-fill"></span>
+            <span class="guess-body"><span class="guess-label">♠</span></span>
+          </button>
+          <button class="btn-guess btn-suit" data-suit-color="red" data-suit="♥">
+            <span class="guess-fill"></span>
+            <span class="guess-body"><span class="guess-label">♥</span></span>
+          </button>
+          <button class="btn-guess btn-suit" data-suit-color="red" data-suit="♦">
+            <span class="guess-fill"></span>
+            <span class="guess-body"><span class="guess-label">♦</span></span>
+          </button>
+          <button class="btn-guess btn-suit" data-suit-color="black" data-suit="♣">
+            <span class="guess-fill"></span>
+            <span class="guess-body"><span class="guess-label">♣</span></span>
+          </button>
+        </div>
+
+        
+        <div class="color-row" id="colorRow" style="display:none;">
+          <button class="btn-guess btn-color-red" data-color="red">
+            <span class="guess-fill"></span>
+            <span class="guess-body"><span class="guess-label">♥ Red</span></span>
+          </button>
+          <button class="btn-guess btn-color-black" data-color="black">
+            <span class="guess-fill"></span>
+            <span class="guess-body"><span class="guess-label">♣ Black</span></span>
+          </button>
+        </div>
+        <div class="secondary-row" id="secondaryRow" style="display:none;">
+          <button class="btn btn-skip" id="skipBtn">Skip Card</button>
+          <button class="btn btn-cashout" id="cashoutBtn">Cash Out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: LEGEND + LADDER -->
+    <div class="side-col">
+      <div class="panel" id="legendPanel" style="display:none;">
+        <div class="panel-title">Odds</div>
+        <div class="legend-head"><span class="legend-col choice">Choice</span><span class="legend-col pct">Odds</span><span class="legend-col mult">Mult</span><span class="legend-col gain">Profit</span></div>
+        <div id="legendTable">
+          <div class="legend-row" id="legendRow1"><span class="legend-col choice" id="legendRow1Choice">—</span><span class="legend-col pct" id="legendRow1Pct">—</span><span class="legend-col mult" id="legendRow1Mult">—</span><span class="legend-col gain" id="legendRow1Gain">—</span></div>
+          <div class="legend-row" id="legendRow2"><span class="legend-col choice" id="legendRow2Choice">—</span><span class="legend-col pct" id="legendRow2Pct">—</span><span class="legend-col mult" id="legendRow2Mult">—</span><span class="legend-col gain" id="legendRow2Gain">—</span></div>
+          <div class="legend-row" id="legendRow3" style="display:none;"><span class="legend-col choice" id="legendRow3Choice">—</span><span class="legend-col pct" id="legendRow3Pct">—</span><span class="legend-col mult" id="legendRow3Mult">—</span><span class="legend-col gain" id="legendRow3Gain">—</span></div>
+          <div class="legend-row" id="legendRow4" style="display:none;"><span class="legend-col choice" id="legendRow4Choice">—</span><span class="legend-col pct" id="legendRow4Pct">—</span><span class="legend-col mult" id="legendRow4Mult">—</span><span class="legend-col gain" id="legendRow4Gain">—</span></div>
+        </div>
+      </div>
+
+      <div class="panel ladder-panel">
+        <div class="panel-title">Run</div>
+        <div class="run-strip" id="ladderList">
+          <div class="ladder-empty">No streak yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cashout-overlay" id="cashoutOverlay">
+    <div class="cashout-box">
+      <div class="cashout-mult" id="cashoutMult">0.00×</div>
+      <div class="cashout-divider"></div>
+      <div class="cashout-amount"><span class="cashout-coin">◈</span><span id="cashoutAmount">0.00</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ── AUDIO DESTINATIONS ─────────────────────────────────────────────
+  // Drop your audio files into the "sounds" folder next to this HTML
+  // file, using these exact names (or edit the paths below to match).
+  // Missing files are simply silent — add them one at a time.
+  const SOUNDS = {
+    button:  'sounds/button.mp3',   // chips (½ / 2× / MAX), bet-mode tabs, closing the cash-out popup
+    play:    'sounds/play.mp3',     // Play button — round starts
+    choice:  'sounds/choice.mp3',   // the player clicks a choice: Higher / Lower / a suit / a color
+    flip:    'sounds/flip.mp3',     // the next card's flip animation as it turns over
+    skip:    'sounds/skip.mp3',     // Skip Card button
+    win:     'sounds/win.mp3',      // correct guess, multiplier climbs
+    cashout: 'sounds/cashout.mp3',  // Cash Out
+    lose:    'sounds/lose.mp3'      // wrong guess, streak lost
+  };
+  const SOUND_VOLUME = 0.8; // master volume, 0.0 – 1.0
+
+  const audioCache = {};
+  function playSound(name){
+    const src = SOUNDS[name];
+    if (!src) return;
+    if (!audioCache[name]){
+      audioCache[name] = new Audio(src);
+      audioCache[name].preload = 'auto';
+    }
+    // clone so rapid presses can overlap instead of restarting
+    const node = audioCache[name].cloneNode();
+    node.volume = SOUND_VOLUME;
+    node.play().catch(() => {}); // file missing or autoplay blocked: stay silent
+  }
+  // ───────────────────────────────────────────────────────────────────
+
+  const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const SUITS = [
+    {sym:'♠', color:'black'}, {sym:'♥', color:'red'},
+    {sym:'♦', color:'red'}, {sym:'♣', color:'black'}
+  ];
+
+  const RTP = 0.98; // house edge = 1 - RTP, applied once per streak at the first win
+  const PROCESSING_DELAY = 450; // ms between a choice and the card flip — simulated casino round-trip; tune to match live latency
+  let balance = 100;
+  let wager = 10;
+  let inRound = false;
+  let currentRankIdx = null;
+  let currentSuit = null;
+  let cumMult = 1;
+  let skipsLeft = 52;
+  let streakHistory = [];
+  let busy = false;
+
+  const el = id => document.getElementById(id);
+  const balanceValue = el('balanceValue');
+  const wagerInput = el('wagerInput');
+  const wagerRow = el('wagerRow');
+  const startBtn = el('startBtn');
+  const betTabs = el('betTabs');
+  const guessRow = el('guessRow');
+  const suitRow = el('suitRow');
+  const colorRow = el('colorRow');
+  const secondaryRow = el('secondaryRow');
+  const highBtn = el('highBtn');
+  const lowBtn = el('lowBtn');
+  const skipBtn = el('skipBtn');
+  const cashoutBtn = el('cashoutBtn');
+  const highFill = el('highFill');
+  const lowFill = el('lowFill');
+  const highBtnPct = el('highBtnPct');
+  const lowBtnPct = el('lowBtnPct');
+  const highBtnLabel = el('highBtnLabel');
+  const lowBtnLabel = el('lowBtnLabel');
+  const suitButtons = Array.from(document.querySelectorAll('.btn-suit'));
+  const colorButtons = Array.from(document.querySelectorAll('[data-color]'));
+  
+  const cardCurrent = el('cardCurrent');
+  const cardNext = el('cardNext');
+  const cardCurrentFace = el('cardCurrentFace');
+  const cardNextFace = el('cardNextFace');
+  const multiplierDisplay = el('multiplierDisplay');
+  const multiplierSub = el('multiplierSub');
+  const ladderList = el('ladderList');
+  const cashoutOverlay = el('cashoutOverlay');
+  const cashoutMult = el('cashoutMult');
+  const cashoutAmount = el('cashoutAmount');
+  // legend elements
+  const legendPanel = el('legendPanel');
+  const legendRow1Choice = el('legendRow1Choice');
+  const legendRow1 = el('legendRow1');
+  const legendRow1Pct = el('legendRow1Pct');
+  const legendRow1Mult = el('legendRow1Mult');
+  const legendRow1Gain = el('legendRow1Gain');
+  const legendRow2Choice = el('legendRow2Choice');
+  const legendRow2 = el('legendRow2');
+  const legendRow2Pct = el('legendRow2Pct');
+  const legendRow2Mult = el('legendRow2Mult');
+  const legendRow2Gain = el('legendRow2Gain');
+  const legendRow3 = el('legendRow3');
+  const legendRow3Choice = el('legendRow3Choice');
+  const legendRow3Pct = el('legendRow3Pct');
+  const legendRow3Mult = el('legendRow3Mult');
+  const legendRow3Gain = el('legendRow3Gain');
+  const legendRow4 = el('legendRow4');
+  const legendRow4Choice = el('legendRow4Choice');
+  const legendRow4Pct = el('legendRow4Pct');
+  const legendRow4Mult = el('legendRow4Mult');
+  const legendRow4Gain = el('legendRow4Gain');
+
+  let betMode = 'hilo'; // 'hilo' | 'suit' | 'color'
+
+  function fmtMoney(n){ return n.toFixed(2); }
+
+  function randRankIdx(){ return Math.floor(Math.random()*13); }
+  function randSuit(){ return SUITS[Math.floor(Math.random()*4)]; }
+
+  // favorable-outcome counts out of 13 ranks, matching the stated probability table
+  function outcomeCounts(c){
+    if (c === 12) return { high: 1, low: 12 };   // King
+    if (c === 0)  return { high: 12, low: 1 };   // Ace
+    return { high: (12 - c) + 1, low: c + 1 };   // tie counts for both sides
+  }
+
+  function fairMultFor(c, side){
+    const counts = outcomeCounts(c);
+    return 13 / counts[side];
+  }
+  function pctFor(c, side){
+    const counts = outcomeCounts(c);
+    return (counts[side] / 13) * 100;
+  }
+
+  // suit (1-of-4, independent of rank) and color (1-of-2, independent of rank) are flat, constant odds
+  const SUIT_FAIR = 4;   // 1/4 true odds
+  const SUIT_PCT = 25;
+  const COLOR_FAIR = 2;  // 1/2 true odds
+  const COLOR_PCT = 50;
+
+  function stepFactor(fair){
+    // the factor this round's win multiplies the CURRENT cumulative multiplier by
+    // (RTP is folded in only on the very first bet of a streak, same rule as the actual payout math)
+    return cumMult === 1 ? RTP * fair : fair;
+  }
+
+  function totalIfWin(fair){
+    // the actual resulting cumulative multiplier if this guess wins — used only to compute
+    // the dollar "net gain" preview, so it can never drift from what the payout actually becomes
+    return cumMult === 1 ? RTP * fair : cumMult * fair;
+  }
+
+  function gainLabel(fair){
+    // incremental gain from your CURRENT accumulated payout, not from the original wager —
+    // i.e. what this specific next step adds on top of what you've already banked
+    const before = cumMult; // 1x if no win yet this round
+    const after = totalIfWin(fair);
+    const gain = wager * (after - before);
+    return (gain >= 0 ? '+$' : '-$') + Math.abs(gain).toFixed(2);
+  }
+
+  function renderCardFace(faceEl, rankIdx, suit){
+    faceEl.className = 'card-face card-front ' + suit.color;
+    faceEl.innerHTML =
+      '<div><div class="card-rank-tl">' + RANKS[rankIdx] + '</div><div class="card-suit-tl">' + suit.sym + '</div></div>' +
+      '<div class="card-suit-big">' + suit.sym + '</div>' +
+      '<div><div class="card-rank-br">' + RANKS[rankIdx] + '</div><div class="card-suit-br">' + suit.sym + '</div></div>';
+  }
+
+  function updateOddsPanel(){
+    // High/Low buttons: label (with King/Ace special cases) + win percentage only
+    if (currentRankIdx === null){
+      highBtnLabel.textContent = '▲ Higher or same';
+      lowBtnLabel.textContent = '▼ Lower or same';
+      highBtnPct.textContent = '—'; lowBtnPct.textContent = '—';
+      highFill.style.width = '0%'; lowFill.style.width = '0%';
+    } else {
+      const c = currentRankIdx;
+      const hPct = pctFor(c,'high');
+      const lPct = pctFor(c,'low');
+
+      // King: only a tie can win "high"; Ace: only a tie can win "low"
+      highBtnLabel.textContent = c === 12 ? 'Same' : (c === 0 ? '▲ Higher' : '▲ Higher or same');
+      lowBtnLabel.textContent = c === 0 ? 'Same' : (c === 12 ? '▼ Lower' : '▼ Lower or same');
+      highBtnPct.textContent = hPct.toFixed(2) + '%';
+      lowBtnPct.textContent = lPct.toFixed(2) + '%';
+      highFill.style.width = Math.min(hPct, 100) + '%';
+      lowFill.style.width = Math.min(lPct, 100) + '%';
+    }
+
+    // (Removed small suit/color captions from main game — legend shows these now)
+
+    // Legend panel visibility: show only during a round
+    legendPanel.style.display = inRound ? 'block' : 'none';
+
+    // Populate compact legend table depending on selected bet mode
+    if (currentRankIdx === null || !inRound){
+      // reset rows
+      legendRow1Choice.textContent = '—'; legendRow1Pct.textContent = '—'; legendRow1Mult.textContent = '—'; legendRow1Gain.textContent = '—';
+      legendRow2Choice.textContent = '—'; legendRow2Pct.textContent = '—'; legendRow2Mult.textContent = '—'; legendRow2Gain.textContent = '—';
+      legendRow3Choice.textContent = '—'; legendRow3Pct.textContent = '—'; legendRow3Mult.textContent = '—'; legendRow3Gain.textContent = '—'; legendRow3.style.display = 'none';
+      legendRow4Choice.textContent = '—'; legendRow4Pct.textContent = '—'; legendRow4Mult.textContent = '—'; legendRow4Gain.textContent = '—'; legendRow4.style.display = 'none';
+    } else {
+      if (betMode === 'hilo'){
+        const counts = outcomeCounts(currentRankIdx);
+        const highPct = (counts.high/13)*100;
+        const lowPct = (counts.low/13)*100;
+        const highFair = fairMultFor(currentRankIdx,'high');
+        const lowFair = fairMultFor(currentRankIdx,'low');
+
+        legendRow1Choice.textContent = 'Higher';
+        legendRow1Pct.textContent = highPct.toFixed(2) + '%';
+        legendRow1Mult.textContent = stepFactor(highFair).toFixed(2) + 'x';
+        legendRow1Gain.textContent = gainLabel(highFair);
+
+        legendRow2Choice.textContent = 'Lower';
+        legendRow2Pct.textContent = lowPct.toFixed(2) + '%';
+        legendRow2Mult.textContent = stepFactor(lowFair).toFixed(2) + 'x';
+        legendRow2Gain.textContent = gainLabel(lowFair);
+
+        legendRow1.style.display = 'grid'; legendRow1.className = 'legend-row legend-high';
+        legendRow2.style.display = 'grid'; legendRow2.className = 'legend-row legend-low';
+        legendRow3.style.display = 'none';
+        legendRow4.style.display = 'none';
+      } else if (betMode === 'suit'){
+        // four suit rows
+        const mult = stepFactor(SUIT_FAIR).toFixed(2) + 'x';
+        const gain = gainLabel(SUIT_FAIR);
+        legendRow1Choice.textContent = '♠ Spades'; legendRow1Pct.textContent = SUIT_PCT.toFixed(2) + '%'; legendRow1Mult.textContent = mult; legendRow1Gain.textContent = gain; legendRow1.style.display = 'grid'; legendRow1.className = 'legend-row legend-suit legend-color-black';
+        legendRow2Choice.textContent = '♥ Hearts'; legendRow2Pct.textContent = SUIT_PCT.toFixed(2) + '%'; legendRow2Mult.textContent = mult; legendRow2Gain.textContent = gain; legendRow2.style.display = 'grid'; legendRow2.className = 'legend-row legend-suit legend-color-red';
+        legendRow3Choice.textContent = '♦ Diamonds'; legendRow3Pct.textContent = SUIT_PCT.toFixed(2) + '%'; legendRow3Mult.textContent = mult; legendRow3Gain.textContent = gain; legendRow3.style.display = 'grid'; legendRow3.className = 'legend-row legend-suit legend-color-red';
+        legendRow4Choice.textContent = '♣ Clubs'; legendRow4Pct.textContent = SUIT_PCT.toFixed(2) + '%'; legendRow4Mult.textContent = mult; legendRow4Gain.textContent = gain; legendRow4.style.display = 'grid'; legendRow4.className = 'legend-row legend-suit legend-color-black';
+      } else if (betMode === 'color'){
+        const mult = stepFactor(COLOR_FAIR).toFixed(2) + 'x';
+        const gain = gainLabel(COLOR_FAIR);
+        legendRow1Choice.textContent = '♥ Red'; legendRow1Pct.textContent = COLOR_PCT.toFixed(2) + '%'; legendRow1Mult.textContent = mult; legendRow1Gain.textContent = gain; legendRow1.style.display = 'grid'; legendRow1.className = 'legend-row legend-color-red';
+        legendRow2Choice.textContent = '♣ Black'; legendRow2Pct.textContent = COLOR_PCT.toFixed(2) + '%'; legendRow2Mult.textContent = mult; legendRow2Gain.textContent = gain; legendRow2.style.display = 'grid'; legendRow2.className = 'legend-row legend-color-black';
+        legendRow3.style.display = 'none'; legendRow4.style.display = 'none';
+      }
+    }
+  }
+
+  function updateBalance(){ balanceValue.textContent = fmtMoney(balance); }
+
+  function updateMultiplierDisplay(){
+    multiplierDisplay.classList.remove('lose', 'crash');
+    multiplierDisplay.textContent = cumMult.toFixed(2) + 'x';
+    // show net profit relative to already accumulated value when in a streak
+    multiplierSub.textContent = inRound
+      ? 'net profit: ' + fmtMoney(wager * (cumMult - 1))
+      : 'accumulated multiplier';
+  }
+
+  function pulseMultiplier(){
+    multiplierDisplay.classList.remove('pulse');
+    void multiplierDisplay.offsetWidth;
+    multiplierDisplay.classList.add('pulse');
+  }
+
+  function connectorFor(entry){
+    if (entry.kind === 'skip') return { cls: 'skip', text: '⤼' };
+    if (entry.betType === 'high') return { cls: 'up', text: '▲' };
+    if (entry.betType === 'low') return { cls: 'down', text: '▼' };
+    if (entry.betType === 'suit'){
+      const cls = (entry.betValue === '♥' || entry.betValue === '♦') ? 'suit-red' : 'suit-black';
+      return { cls: cls, text: entry.betValue };
+    }
+    if (entry.betType === 'color'){
+      const cls = entry.betValue === 'red' ? 'color-red' : 'color-black';
+      return { cls: cls, text: '●' };
+    }
+    return null;
+  }
+
+  function renderLadder(){
+    if (streakHistory.length === 0){
+      ladderList.innerHTML = '<div class="ladder-empty">No streak yet</div>';
+      return;
+    }
+    let html = '';
+    streakHistory.forEach((h, i) => {
+      if (i > 0){
+        const conn = connectorFor(h);
+        if (conn) html += '<div class="run-connector ' + conn.cls + '">' + conn.text + '</div>';
+      }
+      const rankStr = RANKS[h.rankIdx];
+      const faceHtml =
+        '<div class="run-face ' + h.suit.color + '">' +
+          '<div class="run-rank">' + rankStr + '</div>' +
+          '<div class="run-suit">' + h.suit.sym + '</div>' +
+        '</div>';
+
+      let pillHtml;
+      if (h.kind === 'start') pillHtml = '<div class="run-pill start">Start Card</div>';
+      else if (h.kind === 'skip') pillHtml = '<div class="run-pill skip">Skip</div>';
+      else pillHtml = '<div class="run-pill">' + h.cum.toFixed(2) + '×</div>';
+
+      html += '<div class="run-card">' + faceHtml + pillHtml + '</div>';
+    });
+    ladderList.innerHTML = html;
+    ladderList.scrollLeft = ladderList.scrollWidth;
+  }
+
+  function flagWagerError(){
+    wagerInput.classList.remove('invalid');
+    void wagerInput.offsetWidth;
+    wagerInput.classList.add('invalid');
+  }
+
+  function showBackFace(cardEl){
+    const inner = cardEl.querySelector('.card-inner');
+    inner.style.transform = 'rotateY(0deg)';
+  }
+  function showFrontFace(cardEl){
+    const inner = cardEl.querySelector('.card-inner');
+    inner.style.transform = 'rotateY(180deg)';
+  }
+
+  function dealCurrentCard(){
+    currentRankIdx = randRankIdx();
+    currentSuit = randSuit();
+    renderCardFace(cardCurrentFace, currentRankIdx, currentSuit);
+    showFrontFace(cardCurrent);
+    showBackFace(cardNext);
+    updateOddsPanel();
+  }
+
+  function setBetButtonsDisabled(disabled){
+    highBtn.disabled = disabled;
+    lowBtn.disabled = disabled;
+    suitButtons.forEach(b => b.disabled = disabled);
+    colorButtons.forEach(b => b.disabled = disabled);
+    skipBtn.disabled = disabled;
+  }
+
+  function setBetMode(mode){
+    betMode = mode;
+    document.querySelectorAll('.bet-tab').forEach(t => t.classList.toggle('active', t.dataset.betMode === mode));
+    guessRow.style.display = mode === 'hilo' ? 'flex' : 'none';
+    suitRow.style.display = mode === 'suit' ? 'flex' : 'none';
+    colorRow.style.display = mode === 'color' ? 'flex' : 'none';
+    // update legend immediately when mode changes
+    updateOddsPanel();
+  }
+
+  function startRound(){
+    const w = parseFloat(wagerInput.value);
+    if (isNaN(w) || w <= 0 || w > balance){ flagWagerError(); return; }
+
+    playSound('play');
+    wager = w;
+    balance -= wager;
+    updateBalance();
+
+    inRound = true;
+    cumMult = 1;
+    skipsLeft = 52;
+    streakHistory = [];
+    busy = false;
+
+    wagerRow.style.display = 'none';
+    startBtn.style.display = 'none';
+    betTabs.style.display = 'flex';
+    secondaryRow.style.display = 'flex';
+    setBetButtonsDisabled(false);
+    cashoutBtn.disabled = true;
+    setBetMode(betMode); // re-show whichever row was last active
+
+    updateMultiplierDisplay();
+    dealCurrentCard();
+    streakHistory.push({ kind: 'start', rankIdx: currentRankIdx, suit: currentSuit });
+    renderLadder();
+  }
+
+  function endRound(won){
+    inRound = false;
+    busy = false;
+    setBetButtonsDisabled(false);
+    wagerRow.style.display = 'flex';
+    startBtn.style.display = 'block';
+    betTabs.style.display = 'none';
+    guessRow.style.display = 'none';
+    suitRow.style.display = 'none';
+    colorRow.style.display = 'none';
+    secondaryRow.style.display = 'none';
+    startBtn.textContent = 'Play';
+    if (won) balance += wager * cumMult;
+    updateBalance();
+    cumMult = 1;
+    currentRankIdx = null;
+    updateMultiplierDisplay();
+    updateOddsPanel();
+    showBackFace(cardCurrent);
+    showBackFace(cardNext);
+  }
+
+  function skipCard(){
+    if (!inRound || busy) return;
+    if (skipsLeft <= 0) return;
+    playSound('skip');
+    skipsLeft -= 1;
+    cardCurrent.classList.add('pending-shake');
+    setTimeout(() => cardCurrent.classList.remove('pending-shake'), 350);
+    dealCurrentCard();
+    // skip doesn't change the multiplier, but it does show up as its own step in the run history
+    streakHistory.push({ kind: 'skip', rankIdx: currentRankIdx, suit: currentSuit, cum: cumMult });
+    renderLadder();
+  }
+
+  // Unified resolver for all four bet types.
+  // betType: 'high' | 'low' | 'suit' | 'color'
+  // betValue: suit symbol (for 'suit') or 'red'/'black' (for 'color'); unused for high/low
+  function resolveGuess(betType, betValue){
+    if (!inRound || busy) return;
+    busy = true;
+    setBetButtonsDisabled(true);
+
+    playSound('choice');
+    const nextRankIdx = randRankIdx();
+    const nextSuit = randSuit();
+
+    const c = currentRankIdx;
+    let won, roundFair;
+
+    if (betType === 'high' || betType === 'low'){
+      if (c === 12) won = (betType === 'high') ? (nextRankIdx === 12) : (nextRankIdx < 12);
+      else if (c === 0) won = (betType === 'low') ? (nextRankIdx === 0) : (nextRankIdx > 0);
+      else won = (betType === 'high') ? (nextRankIdx >= c) : (nextRankIdx <= c);
+      roundFair = fairMultFor(c, betType);
+    } else if (betType === 'suit'){
+      won = (nextSuit.sym === betValue);
+      roundFair = SUIT_FAIR;
+    } else if (betType === 'color'){
+      won = (nextSuit.color === betValue);
+      roundFair = COLOR_FAIR;
+    }
+
+    // simulated "casino server" latency: the choice registers first, then the
+    // card flips once the result comes back. Swap PROCESSING_DELAY for the real
+    // network round-trip when the game is connected to the live casino.
+    cardNext.classList.add('thinking');
+    setTimeout(() => {
+      cardNext.classList.remove('thinking');
+      renderCardFace(cardNextFace, nextRankIdx, nextSuit);
+      showFrontFace(cardNext);
+      playSound('flip');
+      setTimeout(revealOutcome, 500);
+    }, PROCESSING_DELAY);
+
+    function revealOutcome(){
+      if (won){
+        playSound('win');
+        cumMult = (cumMult === 1 ? RTP : cumMult) * roundFair;
+        streakHistory.push({ kind: 'result', rankIdx: nextRankIdx, suit: nextSuit, betType: betType, betValue: betValue, cum: cumMult });
+        renderLadder();
+        pulseMultiplier();
+        updateMultiplierDisplay();
+        cashoutBtn.disabled = false;
+
+        currentRankIdx = nextRankIdx;
+        currentSuit = nextSuit;
+        cardCurrentFace.innerHTML = cardNextFace.innerHTML;
+        cardCurrentFace.className = cardNextFace.className;
+        showBackFace(cardNext);
+        updateOddsPanel();
+
+        setBetButtonsDisabled(false);
+        busy = false;
+      } else {
+        playSound('lose');
+        multiplierDisplay.classList.remove('pulse', 'crash');
+        void multiplierDisplay.offsetWidth;
+        multiplierDisplay.textContent = '0.00x';
+        multiplierDisplay.classList.add('lose', 'crash');
+        multiplierSub.textContent = 'streak lost';
+        // loss is final immediately: cash out is locked out right away, even though the
+        // crash animation keeps playing cosmetically for a moment before the round fully resets
+        cashoutBtn.disabled = true;
+        setTimeout(() => endRound(false), 900);
+      }
+    }
+  }
+
+  function showCashoutModal(finalMult, finalPayout){
+    cashoutMult.textContent = finalMult.toFixed(2) + '×';
+    cashoutAmount.textContent = fmtMoney(finalPayout);
+    cashoutOverlay.classList.add('visible');
+  }
+  function hideCashoutModal(){
+    cashoutOverlay.classList.remove('visible');
+  }
+
+  function cashOut(){
+    if (!inRound || busy || cumMult <= 1) return;
+    playSound('cashout');
+    const finalMult = cumMult;
+    const finalPayout = wager * cumMult;
+    endRound(true);
+    showCashoutModal(finalMult, finalPayout);
+  }
+
+  document.querySelectorAll('.chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      playSound('button');
+      const type = btn.dataset.chip;
+      let v = parseFloat(wagerInput.value) || 0;
+      if (type === 'half') v = Math.max(1, Math.floor(v / 2));
+      if (type === 'double') v = Math.min(balance, v * 2 || 1);
+      if (type === 'max') v = Math.floor(balance);
+      wagerInput.value = v;
+    });
+  });
+
+  document.querySelectorAll('.bet-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (!inRound || busy) return;
+      playSound('button');
+      setBetMode(tab.dataset.betMode);
+    });
+  });
+
+  startBtn.addEventListener('click', startRound);
+  highBtn.addEventListener('click', () => resolveGuess('high', null));
+  lowBtn.addEventListener('click', () => resolveGuess('low', null));
+  suitButtons.forEach(btn => {
+    btn.addEventListener('click', () => resolveGuess('suit', btn.dataset.suit));
+  });
+  colorButtons.forEach(btn => {
+    btn.addEventListener('click', () => resolveGuess('color', btn.dataset.color));
+  });
+  skipBtn.addEventListener('click', skipCard);
+  cashoutBtn.addEventListener('click', cashOut);
+  cashoutOverlay.addEventListener('click', (e) => {
+    if (e.target === cashoutOverlay){ playSound('button'); hideCashoutModal(); }
+  });
+
+  updateBalance();
+  updateMultiplierDisplay();
+})();
+</script>
+
+</body>
+</html>
