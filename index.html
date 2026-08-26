@@ -120,7 +120,11 @@
   }
 
   @media (max-width: 780px) {
-    .table { grid-template-columns: 1fr; }
+    /* minmax(0,1fr), not 1fr: bare 1fr can't shrink below the panels'
+       min-content width (the wager input's intrinsic size), which pushed
+       the whole layout wider than small screens whenever the bet controls
+       were visible */
+    .table { grid-template-columns: minmax(0, 1fr); }
   }
 
   .panel {
@@ -349,6 +353,7 @@
   .wager-row { display: flex; gap: 8px; width: 100%; }
   .wager-input {
     flex: 1;
+    min-width: 0; /* let it shrink below the browser's default input width on small screens */
     background: rgba(0,0,0,0.25);
     border: 1px solid var(--panel-border);
     border-radius: 8px;
