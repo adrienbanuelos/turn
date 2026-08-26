@@ -151,12 +151,68 @@
     padding-top: 8px;
   }
 
+  .felt-caption {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(244,239,225,0.55);
+    margin-bottom: 12px;
+  }
+
   .card-row {
     display: flex;
     gap: 18px;
     align-items: center;
     justify-content: center;
     min-height: 190px;
+  }
+
+  .rank-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 84px;
+  }
+  .rank-hint:first-child { margin-right: 6px; }
+  .rank-hint:last-child { margin-left: 6px; }
+  .rank-hint-box {
+    width: 56px;
+    height: 82px;
+    border: 1.5px dashed rgba(244,239,225,0.25);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    color: rgba(244,239,225,0.5);
+  }
+  .rank-hint-letter { font-family: var(--font-display); font-size: 24px; line-height: 1; }
+  .rank-hint-arrow { font-size: 14px; line-height: 1; }
+  .rank-hint-text {
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(244,239,225,0.4);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .rank-order-note {
+    display: none;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(244,239,225,0.45);
+    margin-top: 8px;
+  }
+  @media (max-width: 560px) {
+    .rank-hint { display: none; }
+    .rank-order-note { display: block; }
   }
 
   .card {
@@ -224,6 +280,11 @@
     font-family: var(--font-display);
     font-size: 22px;
     line-height: 1;
+  }
+
+  .card.lost .card-front {
+    border: 3px solid var(--lose);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 18px rgba(213,86,77,0.5);
   }
 
   .card.pending-shake .card-inner { animation: shake 0.35s; }
@@ -557,6 +618,12 @@
     border-color: rgba(155,92,246,0.3);
     color: var(--accent-bright);
   }
+  .run-face.lost { border: 2px solid var(--lose); }
+  .run-pill.lost {
+    background: var(--lose);
+    border-color: var(--lose);
+    color: #fff;
+  }
   .run-pill.skip {
     background: rgba(244,239,225,0.06);
     border-color: rgba(244,239,225,0.18);
@@ -650,7 +717,15 @@
   <div class="table">
     <!-- MAIN FELT -->
     <div class="panel felt-main">
+      <div class="felt-caption">Guess what the next card will be</div>
       <div class="card-row">
+        <div class="rank-hint">
+          <div class="rank-hint-box">
+            <div class="rank-hint-letter">K</div>
+            <div class="rank-hint-arrow">↑</div>
+          </div>
+          <div class="rank-hint-text">King is<br>the highest</div>
+        </div>
         <div class="card current" id="cardCurrent">
           <div class="card-inner">
             <div class="card-face card-back"><div class="card-back-emblem">?</div></div>
@@ -664,7 +739,15 @@
             <div class="card-face card-front" id="cardNextFace"></div>
           </div>
         </div>
+        <div class="rank-hint">
+          <div class="rank-hint-box">
+            <div class="rank-hint-letter">A</div>
+            <div class="rank-hint-arrow">↓</div>
+          </div>
+          <div class="rank-hint-text">Ace is<br>the lowest</div>
+        </div>
       </div>
+      <div class="rank-order-note">A is lowest · K is highest</div>
 
       <div class="multiplier-display" id="multiplierDisplay">1.00x</div>
       <div class="multiplier-sub" id="multiplierSub">accumulated multiplier</div>
@@ -1054,7 +1137,7 @@
       }
       const rankStr = RANKS[h.rankIdx];
       const faceHtml =
-        '<div class="run-face ' + h.suit.color + '">' +
+        '<div class="run-face ' + h.suit.color + (h.kind === 'loss' ? ' lost' : '') + '">' +
           '<div class="run-rank">' + rankStr + '</div>' +
           '<div class="run-suit">' + h.suit.sym + '</div>' +
         '</div>';
@@ -1062,6 +1145,7 @@
       let pillHtml;
       if (h.kind === 'start') pillHtml = '<div class="run-pill start">Start Card</div>';
       else if (h.kind === 'skip') pillHtml = '<div class="run-pill skip">Skip</div>';
+      else if (h.kind === 'loss') pillHtml = '<div class="run-pill lost">0.00×</div>';
       else pillHtml = '<div class="run-pill">' + h.cum.toFixed(2) + '×</div>';
 
       html += '<div class="run-card">' + faceHtml + pillHtml + '</div>';
@@ -1126,6 +1210,7 @@
     skipsLeft = 52;
     streakHistory = [];
     busy = false;
+    cardNext.classList.remove('lost'); // clear leftover loss-review state
 
     wagerRow.style.display = 'none';
     startBtn.style.display = 'none';
@@ -1159,6 +1244,7 @@
     currentRankIdx = null;
     updateMultiplierDisplay();
     updateOddsPanel();
+    cardNext.classList.remove('lost');
     showBackFace(cardCurrent);
     showBackFace(cardNext);
   }
@@ -1237,15 +1323,29 @@
         busy = false;
       } else {
         playSound('lose');
+        cardNext.classList.add('lost');
+        streakHistory.push({ kind: 'loss', rankIdx: nextRankIdx, suit: nextSuit, betType: betType, betValue: betValue });
+        renderLadder();
         multiplierDisplay.classList.remove('pulse', 'crash');
         void multiplierDisplay.offsetWidth;
         multiplierDisplay.textContent = '0.00x';
         multiplierDisplay.classList.add('lose', 'crash');
         multiplierSub.textContent = 'streak lost';
-        // loss is final immediately: cash out is locked out right away, even though the
-        // crash animation keeps playing cosmetically for a moment before the round fully resets
+        // loss is final immediately, but the board stays up for review (failure card
+        // outlined in red, run strip intact) until the player starts the next round.
+        // The wager input keeps the last bet, so Play repeats it; the chips or typing
+        // change it before re-entering.
         cashoutBtn.disabled = true;
-        setTimeout(() => endRound(false), 900);
+        inRound = false;
+        busy = false;
+        betTabs.style.display = 'none';
+        guessRow.style.display = 'none';
+        suitRow.style.display = 'none';
+        colorRow.style.display = 'none';
+        secondaryRow.style.display = 'none';
+        wagerRow.style.display = 'flex';
+        startBtn.style.display = 'block';
+        startBtn.textContent = 'Play';
       }
     }
   }
