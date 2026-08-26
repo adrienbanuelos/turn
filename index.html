@@ -872,15 +872,59 @@
   };
   const SOUND_VOLUME = 0.8; // master volume, 0.0 – 1.0
 
+  // Web Audio: all files are fetched and decoded once (on the first user
+  // gesture, which is also what unlocks audio on mobile), then each play is a
+  // near-zero-latency buffer start. Overlapping rapid presses is free — every
+  // start() is an independent source node.
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const soundBuffers = {};
+  let soundsRequested = false;
+
+  function loadSounds(){
+    if (soundsRequested) return;
+    soundsRequested = true;
+    Object.keys(SOUNDS).forEach(name => {
+      fetch(SOUNDS[name])
+        .then(r => r.ok ? r.arrayBuffer() : Promise.reject())
+        .then(data => audioCtx.decodeAudioData(data))
+        .then(decoded => { soundBuffers[name] = decoded; })
+        .catch(() => {}); // missing file: that sound stays on the fallback path
+    });
+  }
+
+  // mobile browsers keep the AudioContext suspended until a user gesture;
+  // the first touch/click resumes it and kicks off the downloads
+  function unlockAudio(){
+    loadSounds();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  }
+  ['pointerdown', 'touchstart', 'keydown'].forEach(evt =>
+    document.addEventListener(evt, unlockAudio, { once: true, passive: true }));
+
   const audioCache = {};
   function playSound(name){
     const src = SOUNDS[name];
     if (!src) return;
+
+    const buf = soundBuffers[name];
+    if (buf){
+      if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+      const source = audioCtx.createBufferSource();
+      source.buffer = buf;
+      const gain = audioCtx.createGain();
+      gain.gain.value = SOUND_VOLUME;
+      source.connect(gain);
+      gain.connect(audioCtx.destination);
+      source.start();
+      return;
+    }
+
+    // buffer not ready yet (first seconds of the session) or fetch unavailable
+    // (e.g. the page opened from file://): fall back to a plain Audio element
     if (!audioCache[name]){
       audioCache[name] = new Audio(src);
       audioCache[name].preload = 'auto';
     }
-    // clone so rapid presses can overlap instead of restarting
     const node = audioCache[name].cloneNode();
     node.volume = SOUND_VOLUME;
     node.play().catch(() => {}); // file missing or autoplay blocked: stay silent
