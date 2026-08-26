@@ -354,7 +354,7 @@
     border-radius: 8px;
     color: var(--cream);
     font-family: var(--font-mono);
-    font-size: 15px;
+    font-size: 16px; /* 16px minimum: below this iOS auto-zooms the page on focus */
     padding: 10px 12px;
     text-align: center;
   }
@@ -900,6 +900,10 @@
   }
   ['pointerdown', 'touchstart', 'keydown'].forEach(evt =>
     document.addEventListener(evt, unlockAudio, { once: true, passive: true }));
+
+  // iOS Safari still smart-zooms on double-tap in spots touch-action misses
+  // (dense content like the card faces); block the gesture outright
+  document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 
   const audioCache = {};
   function playSound(name){
